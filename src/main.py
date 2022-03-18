@@ -230,7 +230,7 @@ if __name__=="__main__":
     #print(trackdata(selectnextsong(realplaylist)[0]))
     cont = True
     while cont:
-        t = Thread(target=awaitsongend2)
+        t = Thread(target=awaitsongend)
         t.daemon = True
         t.start()
         inp = input("(S)kip song, Sa(v)e data, (P)rint data, (Q)uit: ")
