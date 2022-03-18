@@ -10,6 +10,7 @@ from spotipy.oauth2 import SpotifyOAuth, SpotifyClientCredentials
 client_id = CLIENT_ID
 client_secret = CLIENT_SECRET
 oauth = ""
+time_since_skip = 0
 realplaylist = {}
 scope='user-modify-playback-state user-read-currently-playing user-read-playback-state user-read-recently-played playlist-read-private'
 client_credentials = SpotifyClientCredentials(client_id, client_secret)
@@ -141,35 +142,27 @@ def awaitsongend():
                 skip()
 
 
-def awaitsongend2():
-    runtime = sp.currently_playing()['item']['duration_ms']
-    curr = sp.currently_playing()['item']['id']
-    print(curr)
-    if runtime-sp.currently_playing()['progress_ms'] > 5000:
-        time.sleep((runtime-sp.currently_playing()['progress_ms']-5000)/1000)
-        print("When called: " + curr + " Now: " + sp.currently_playing()['item']['id'])
-        if sp.currently_playing()['item']['id'] == curr:
-            skip()
-    else:
-        if sp.currently_playing()['item']['id'] == curr:
-            skip()
-
-
 def skip():
-    currscore = sp.currently_playing()['progress_ms']/sp.currently_playing()['item']['duration_ms']
-    id = sp.currently_playing()['item']['id']
-    if id in realplaylist:
-        tmp = realplaylist[id]
-        #print(tmp)
-        tmp[0] += currscore
-        tmp[1] += 1
+    global time_since_skip
+    if (time.time() - time_since_skip) >= 1:
 
-    #print(realplaylist)
-    next = selectnextsong(realplaylist)[0]
-    sp.add_to_queue(next)
-    print(trackdata(next))
-    time.sleep(0.5)
-    sp.next_track()
+        currscore = sp.currently_playing()['progress_ms']/sp.currently_playing()['item']['duration_ms']
+        id = sp.currently_playing()['item']['id']
+        if id in realplaylist:
+            tmp = realplaylist[id]
+            #print(tmp)
+            tmp[0] += currscore
+            tmp[1] += 1
+
+        #print(realplaylist)
+        next = selectnextsong(realplaylist)[0]
+        sp.add_to_queue(next)
+        print(trackdata(next))
+        time.sleep(0.5)
+        sp.next_track()
+        time_since_skip = time.time()
+    else:
+        print("Watch out! Can't skip that fast.")
 
 
 if __name__=="__main__":
@@ -236,13 +229,10 @@ if __name__=="__main__":
     #print("random selections: ")
     #print(trackdata(selectnextsong(realplaylist)[0]))
     cont = True
-    t = Thread(target=awaitsongend)
-    t.daemon = True
-    t.start()
     while cont:
-        t2 = Thread(target=awaitsongend2)
-        t2.daemon = True
-        t2.start()
+        t = Thread(target=awaitsongend2)
+        t.daemon = True
+        t.start()
         inp = input("(S)kip song, Sa(v)e data, (P)rint data, (Q)uit: ")
         inp = inp.lower()
         if inp == "s":
