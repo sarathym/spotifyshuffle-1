@@ -141,6 +141,20 @@ def awaitsongend():
                 skip()
 
 
+def awaitsongend2():
+    runtime = sp.currently_playing()['item']['duration_ms']
+    curr = sp.currently_playing()['item']['id']
+    print(curr)
+    if runtime-sp.currently_playing()['progress_ms'] > 5000:
+        time.sleep((runtime-sp.currently_playing()['progress_ms']-5000)/1000)
+        print("When called: " + curr + " Now: " + sp.currently_playing()['item']['id'])
+        if sp.currently_playing()['item']['id'] == curr:
+            skip()
+    else:
+        if sp.currently_playing()['item']['id'] == curr:
+            skip()
+
+
 def skip():
     currscore = sp.currently_playing()['progress_ms']/sp.currently_playing()['item']['duration_ms']
     id = sp.currently_playing()['item']['id']
@@ -222,10 +236,13 @@ if __name__=="__main__":
     #print("random selections: ")
     #print(trackdata(selectnextsong(realplaylist)[0]))
     cont = True
+    t = Thread(target=awaitsongend)
+    t.daemon = True
+    t.start()
     while cont:
-        t = Thread(target=awaitsongend)
-        #t.daemon = True
-        t.start()
+        t2 = Thread(target=awaitsongend2)
+        t2.daemon = True
+        t2.start()
         inp = input("(S)kip song, Sa(v)e data, (P)rint data, (Q)uit: ")
         inp = inp.lower()
         if inp == "s":
