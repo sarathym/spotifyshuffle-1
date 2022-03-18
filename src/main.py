@@ -131,10 +131,14 @@ def awaitsongend():
         runtime = sp.currently_playing()['item']['duration_ms']
         curr = sp.currently_playing()['item']['id']
         print(curr)
-        time.sleep((runtime-sp.currently_playing()['progress_ms']-5000)/1000)
-        print("When called: " + curr + " Now: " + sp.currently_playing()['item']['id'])
-        if sp.currently_playing()['item']['id'] == curr:
-            skip()
+        if runtime-sp.currently_playing()['progress_ms'] > 5000:
+            time.sleep((runtime-sp.currently_playing()['progress_ms']-5000)/1000)
+            print("When called: " + curr + " Now: " + sp.currently_playing()['item']['id'])
+            if sp.currently_playing()['item']['id'] == curr:
+                skip()
+        else:
+            if sp.currently_playing()['item']['id'] == curr:
+                skip()
 
 
 def skip():
