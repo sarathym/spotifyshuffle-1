@@ -4,6 +4,7 @@ import time
 from vars import *
 from threading import Thread
 import requests
+from collections import deque
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth, SpotifyClientCredentials
 
@@ -49,36 +50,6 @@ def trackdata(track_id):
         return None
 
 
-def getoauth():
-    bearer = "Basic " + client_id + ":" + client_secret
-    """
-    AUTH_URL = 'https://accounts.spotify.com/authorize'
-    auth_code = requests.get(AUTH_URL, {
-        'client_id': client_id,
-        'response_type': 'code',
-        'redirect_uri': 'http://localhost:8888/callback',
-        'scope': 'user-modify-playback-state user-read-currently-playing user-read-playback-state user-read-recently-played playlist-read-private'
-    })
-    print(sp.currently_playing())
-    chrome_path = 'open -a /Applications/Google\ Chrome.app %s'
-    with open("/Users/sarathym/Documents/spotifyshuffle-1/src/data/html.html", "w") as f:
-        f.write(auth_code.text)
-
-    webbrowser.get(chrome_path).open('file:///Users/sarathym/Documents/spotifyshuffle-1/src/data/html.html')
-    """
-    # 5tK6wV2Wj3J5hypX7VBixZ
-    url = "https://accounts.spotify.com/api/token"
-    #response = requests.post(url, headers={"Authorization": bearer, "Content-Type": "x-www-form-urlencoded"}, form={"grant_type": 'client_credentials'})
-    response = requests.post(url, {
-        'grant_type': 'client_credentials',
-        #'code': auth_code,
-        'client_id': client_id,
-        'client_secret': client_secret,
-        'scope': 'user-modify-playback-state user-read-currently-playing user-read-playback-state user-read-recently-played playlist-read-private'
-    })
-    return response.json()['access_token']
-
-
 def selectnextsong(playlist):
     total = 0
     list1 = []
@@ -99,7 +70,6 @@ def selectnextsong(playlist):
     #print(list2)
     randList = random.choices(list1, list2)
     recentlyplayed = sp.current_user_recently_played()
-    set = {}
     retry = True
     while retry:
         retry = False
@@ -107,64 +77,63 @@ def selectnextsong(playlist):
             if jawn['track']['id'] == randList[0]:
                 retry = True
                 randList = random.choices(list1, list2)
-    """
-    Make it so the random selection isn't a recently played song. 
-    endpoint is only returning error code 500 (server error) 
-    Will work on it when I can figure out how to not get error code 500
-    
-    cont = False
-    # 1AYl34jkt472GoaBVRvWjH
-    url = "https://api.spotify.com/v1/me/player/recently-played"
-    while not cont:
-        response = requests.get(url, headers={"Authorization": "Bearer " + oauth, "Content-Type": "application/json", "Accept": "application/json"})
-        songs = response.json()
-        print(response.json())
-        for jawn in songs['items']:
-            if jawn:
-                print(jawn)
-    """
 
     return randList
 
 
 def awaitsongend():
+    recently = deque()
+    recognized = []
     while True:
         if not sp.currently_playing():
             break
-        runtime = sp.currently_playing()['item']['duration_ms']
-        curr = sp.currently_playing()['item']['id']
+        # id, progress, total duration
+        # /Users/sarathym/Documents/spotifyshuffle-1/src/data/bruh.txt
+        # spotify:playlist:1AYl34jkt472GoaBVRvWjH
+        curr = [sp.currently_playing()['item']['id'], sp.currently_playing()['progress_ms'], sp.currently_playing()['item']['duration_ms']]
+        if len(recently) >= 10:
+            recently.popleft()
+
+        recently.append(curr)
         print(curr)
-        if runtime-sp.currently_playing()['progress_ms'] > 5000:
-            time.sleep((runtime-sp.currently_playing()['progress_ms']-5000)/1000)
-            print("When called: " + curr + " Now: " + sp.currently_playing()['item']['id'])
-            if sp.currently_playing()['item']['id'] == curr:
-                skip()
-        else:
-            if sp.currently_playing()['item']['id'] == curr:
-                skip()
+        time.sleep(3)
+
+        currid = sp.currently_playing()['item']['id']
+        print("When called: " + curr[0] + " Now: " + currid)
+        if not currid == curr[0]:
+            if curr[0] in realplaylist:
+                tmp = realplaylist[curr[0]]
+                currscore = curr[1]/curr[2]
+                tmp[0] += currscore
+                tmp[1] += 1
+                realplaylist[curr[0]] = tmp
+
+            nextsong = selectnextsong(realplaylist)[0]
+            sp.add_to_queue(nextsong)
+
+        recognized = checkforskips(recently, recognized)
 
 
-def skip():
-    global time_since_skip
-    if (time.time() - time_since_skip) >= 3:
+def checkforskips(recently, recognized):
+    recentlyplayed = sp.current_user_recently_played(limit=10)
+    read = []
+    recognized2 = []
+    for jawn in recently:
+        read.append(jawn[0])
 
-        currscore = sp.currently_playing()['progress_ms']/sp.currently_playing()['item']['duration_ms']
-        id = sp.currently_playing()['item']['id']
-        if id in realplaylist:
-            tmp = realplaylist[id]
-            #print(tmp)
-            tmp[0] += currscore
-            tmp[1] += 1
+    for jawn in recentlyplayed['items']:
+        id = jawn['track']['id']
+        recognized2.append(id)
+        if id not in read and id not in recognized:
+            print("Skipped: " + id)
+            if id in realplaylist:
+                tmp = realplaylist[id]
+                runtime = jawn['track']['duration_ms']
+                tmp[0] += (runtime-1000)/runtime
+                tmp[1] += 1
+                realplaylist[id] = tmp
 
-        #print(realplaylist)
-        next = selectnextsong(realplaylist)[0]
-        sp.add_to_queue(next)
-        print(trackdata(next))
-        time.sleep(0.5)
-        sp.next_track()
-        time_since_skip = time.time()
-    else:
-        print("Watch out! Can't skip that fast.")
+    return recognized2
 
 
 if __name__=="__main__":
@@ -192,7 +161,6 @@ if __name__=="__main__":
             j = 2
             length = songs['tracks']['total']
             for jawn in songs['tracks']['items']:
-                print("Getting page " + str(j))
                 j+=1
                 track = jawn['track']
                 #              total score, total plays
@@ -236,18 +204,13 @@ if __name__=="__main__":
     #print("random selections: ")
     #print(trackdata(selectnextsong(realplaylist)[0]))
     cont = True
+    t = Thread(target=awaitsongend)
+    t.daemon = True
+    t.start()
     while cont:
-        t = Thread(target=awaitsongend)
-        t.daemon = True
-        t.start()
-        inp = input("(S)kip song, Sa(v)e data, (P)rint data, (Q)uit: ")
+        inp = input("(S)ave data, (P)rint data, (Q)uit: ")
         inp = inp.lower()
         if inp == "s":
-            # 5tK6wV2Wj3J5hypX7VBixZ
-            url = "https://api.spotify.com/v1/me/player/currently-playing"
-            #response = requests.get(url, headers={"Authorization": "Bearer " + oauth, "Content-Type": "application/json", "Accept": "application/json"})
-            skip()
-        elif inp == "v":
             path = "/Users/sarathym/Documents/spotifyshuffle-1/src/data/save.txt"
             savedata(realplaylist)
         elif inp == "q":
