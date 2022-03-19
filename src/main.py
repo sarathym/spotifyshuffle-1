@@ -129,6 +129,8 @@ def selectnextsong(playlist):
 
 def awaitsongend():
     while True:
+        if not sp.currently_playing():
+            break
         runtime = sp.currently_playing()['item']['duration_ms']
         curr = sp.currently_playing()['item']['id']
         print(curr)
@@ -144,7 +146,7 @@ def awaitsongend():
 
 def skip():
     global time_since_skip
-    if (time.time() - time_since_skip) >= 1:
+    if (time.time() - time_since_skip) >= 3:
 
         currscore = sp.currently_playing()['progress_ms']/sp.currently_playing()['item']['duration_ms']
         id = sp.currently_playing()['item']['id']
@@ -178,15 +180,20 @@ if __name__=="__main__":
     while loop:
         action1 = input("(C)reate new playlist or (R)ead playlist from file? ")
         if action1.lower() == "c":
+            print(trackdata(sp.currently_playing()['item']['id']))
             playlistURI = input("Playlist URI? ")
-            url = "https://api.spotify.com/v1/playlists/" + playlistURI
+            #url = "https://api.spotify.com/v1/playlists/" + playlistURI
             #response = requests.get(url, headers={"Authorization": "Bearer " + oauth, "Content-Type": "application/json", "Accept": "application/json"})
             #response = sp.playlist(playlistURI)
             #songs = response.json()
+            print("Getting playlist")
             songs = sp.playlist(playlistURI)
             tmp1 = songs['tracks']['next']
+            j = 2
             length = songs['tracks']['total']
             for jawn in songs['tracks']['items']:
+                print("Getting page " + str(j))
+                j+=1
                 track = jawn['track']
                 #              total score, total plays
                 if track:
