@@ -6,6 +6,7 @@ from threading import Thread
 import requests
 from collections import deque
 import spotipy
+from wakepy import set_keepawake, unset_keepawake
 from spotipy.oauth2 import SpotifyOAuth, SpotifyClientCredentials
 
 client_id = CLIENT_ID
@@ -95,7 +96,7 @@ def awaitsongend():
             recently.popleft()
 
         recently.append(curr)
-        print(curr)
+        #print(curr)
         time.sleep(3)
 
         currid = sp.currently_playing()['item']['id']
@@ -142,14 +143,15 @@ if __name__=="__main__":
     action1 = None
     playlistURI = None
     playlistPath = None
-
-    #oauth = getoauth()
-    #print(oauth)
+    set_keepawake(keep_screen_awake=False)
+    url = "https://api.spotify.com/v1/me/player/currently-playing"
+    response = requests.get(url, headers={"Authorization": "Bearer BQAPVGy1w3lX9HKB283TOyXMcCLNZ9t5qLNivhDA3xs4nyKwP3TvNnTyiLdWpzlSKPOLPJFhmA983f0WdgPAbXOPC3nH-hUpWrbPpWhdbRYbwCh95uLt0N6YryFgWVR0dGLl0dubyA-JFv37llRMzsjnRdvpLLi919yJgIb3Oatwe4x5BhPZGPVKuFBP"})
+    #print(response.json())
 
     while loop:
         action1 = input("(C)reate new playlist or (R)ead playlist from file? ")
         if action1.lower() == "c":
-            print(trackdata(sp.currently_playing()['item']['id']))
+            #print(trackdata(sp.currently_playing()['item']['id']))
             playlistURI = input("Playlist URI? ")
             #url = "https://api.spotify.com/v1/playlists/" + playlistURI
             #response = requests.get(url, headers={"Authorization": "Bearer " + oauth, "Content-Type": "application/json", "Accept": "application/json"})
@@ -219,3 +221,5 @@ if __name__=="__main__":
             print(realplaylist)
         else:
             print("Input not recognized!")
+
+    unset_keepawake()

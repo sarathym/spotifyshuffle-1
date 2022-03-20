@@ -6,4 +6,4 @@ Can save current playlist data (which songs are more likely to be played in a pl
 Also automatically recognizes when a song is about to end and saves that data, i.e. the data of a song being listened to completion. 
 
 # How to Run:
-First, go to https://developer.spotify.com/dashboard/applications, then make a project. Then, download files. In main.py, set client_id and client_secret to the variables making the app on Spotify gave you Run main.py. When asked for a playlist URI, you need to click the three dots on a playlist, then hover on share, then hover on "Copy link to playlist". Don't click it. Hold control on MacBook (I believe command on Windows), wait until it changes to say "Copy Spotify URI", then click and paste in the command line.
+First, download the files. Run the file in /executable/. If asked for a playlist URI, you need to click the three dots on a playlist, then hover on share, then hover on "Copy link to playlist". Don't click it. Hold control on MacBook (I believe command on Windows), wait until it changes to say "Copy Spotify URI", then click and paste in the command line.
