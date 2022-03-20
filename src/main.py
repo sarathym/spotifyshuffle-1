@@ -14,6 +14,7 @@ client_id = CLIENT_ID
 client_secret = CLIENT_SECRET
 oauth = ""
 time_since_skip = 0
+verbose = False
 realplaylist = {}
 scope='user-modify-playback-state user-read-currently-playing user-read-playback-state user-read-recently-played playlist-read-private'
 client_credentials = SpotifyClientCredentials(client_id, client_secret)
@@ -22,8 +23,14 @@ sp = spotipy.Spotify(auth_manager=SpotifyOAuth(scope=scope,client_id=client_id,c
 def savedata(playlist, path=None):
     if not path:
         path = input("Path to write to? ")
-    with open(path, 'wb') as f:
-        pickle.dump(playlist, f)
+    cont = True
+    while cont:
+        try:
+            with open(path, 'wb') as f:
+                pickle.dump(playlist, f)
+            cont = False
+        except FileNotFoundError:
+            path = input("File not found. Try again: ")
 
 
 def readdata(path):
@@ -100,10 +107,14 @@ def awaitsongend():
         time.sleep(3)
 
         currid = sp.currently_playing()['item']['id']
-        print(str(datetime.now()) + " INFO: When called: " + trackdata(curr[0])['name'] + " Now: " + trackdata(currid)['name'])
+        if verbose:
+            print(str(datetime.now()) + " INFO: When called: " + trackdata(curr[0])['name'] + " Now: " + trackdata(currid)['name'])
+
         if not currid == curr[0]:
             if curr[0] in realplaylist:
-                print(str(datetime.now()) + " INFO: Updating data for " + trackdata(curr[0])['name'])
+                if verbose:
+                    print(str(datetime.now()) + " INFO: Updating data for " + trackdata(curr[0])['name'])
+
                 tmp = realplaylist[curr[0]]
                 currscore = curr[1]/curr[2]
                 tmp[0] += currscore
@@ -127,7 +138,8 @@ def checkforskips(recently, recognized):
         id = jawn['track']['id']
         recognized2.append(id)
         if id not in read and id not in recognized:
-            print(str(datetime.now()) + " INFO: Skipped: " + id)
+            if verbose:
+                print(str(datetime.now()) + " INFO: Skipped: " + id)
             if id in realplaylist:
                 tmp = realplaylist[id]
                 runtime = jawn['track']['duration_ms']
@@ -211,7 +223,7 @@ if __name__=="__main__":
     t.daemon = True
     t.start()
     while cont:
-        inp = input("(S)ave data, (P)rint data, (Q)uit: ")
+        inp = input("(S)ave data, (P)rint data, (V)erbose, (Q)uit: ")
         inp = inp.lower()
         if inp == "s":
             path = "/Users/sarathym/Documents/spotifyshuffle-1/src/data/save.txt"
@@ -220,6 +232,8 @@ if __name__=="__main__":
             cont = False
         elif inp == "p":
             print(realplaylist)
+        elif inp == "v":
+            verbose = not verbose
         else:
             print("Input not recognized!")
 
