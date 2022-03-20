@@ -4,6 +4,7 @@ import time
 from vars import *
 from threading import Thread
 import requests
+from datetime import datetime
 from collections import deque
 import spotipy
 from wakepy import set_keepawake, unset_keepawake
@@ -96,13 +97,13 @@ def awaitsongend():
             recently.popleft()
 
         recently.append(curr)
-        #print(curr)
         time.sleep(3)
 
         currid = sp.currently_playing()['item']['id']
-        print("When called: " + curr[0] + " Now: " + currid)
+        print(str(datetime.now()) + " INFO: When called: " + trackdata(curr[0])['name'] + " Now: " + trackdata(currid)['name'])
         if not currid == curr[0]:
             if curr[0] in realplaylist:
+                print(str(datetime.now()) + " INFO: Updating data for " + trackdata(curr[0])['name'])
                 tmp = realplaylist[curr[0]]
                 currscore = curr[1]/curr[2]
                 tmp[0] += currscore
@@ -126,7 +127,7 @@ def checkforskips(recently, recognized):
         id = jawn['track']['id']
         recognized2.append(id)
         if id not in read and id not in recognized:
-            print("Skipped: " + id)
+            print(str(datetime.now()) + " INFO: Skipped: " + id)
             if id in realplaylist:
                 tmp = realplaylist[id]
                 runtime = jawn['track']['duration_ms']

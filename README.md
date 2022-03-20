@@ -7,3 +7,9 @@ Also automatically recognizes when a song is about to end and saves that data, i
 
 # How to Run:
 First, download the files. Run the file in /executable/. If asked for a playlist URI, you need to click the three dots on a playlist, then hover on share, then hover on "Copy link to playlist". Don't click it. Hold control on MacBook (I believe command on Windows), wait until it changes to say "Copy Spotify URI", then click and paste in the command line.
+If the executable does not run, install Python 3.7. If it still does not run, run these commands (Windows):
+py -m pip install datetime
+py -m pip install requests
+py -m pip install spotipy
+py -m pip install wakepy
+py -m pip install pickle
