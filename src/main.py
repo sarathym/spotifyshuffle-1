@@ -34,8 +34,15 @@ def savedata(playlist, path=None):
 
 
 def readdata(path):
-    with open(path, 'rb') as f:
-        return pickle.load(f)
+    cont = True
+    while cont:
+        try:
+            cont = False
+            with open(path, 'rb') as f:
+                return pickle.load(f)
+        except FileNotFoundError:
+            path = input("File not found. Try again: ")
+
 
 
 def trackdata(track_id):
