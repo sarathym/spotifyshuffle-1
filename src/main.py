@@ -4,14 +4,23 @@ import time
 from vars import *
 from threading import Thread
 import requests
+import uuid
 from datetime import datetime
 from collections import deque
 import spotipy
+import json
 from wakepy import set_keepawake, unset_keepawake
 from spotipy.oauth2 import SpotifyOAuth, SpotifyClientCredentials
+from astrapy.rest import create_client, http_methods
 
 client_id = CLIENT_ID
 client_secret = CLIENT_SECRET
+astra_db_id = ASTRA_DB_ID
+astra_db_region = ASTRA_DB_REGION
+astra_db_keyspace = ASTRA_DB_KEYSPACE
+astra_db_app_token = ASTRA_DB_APPLICATION_TOKEN
+ASTRA_DB_COLLECTION = "test1"
+
 oauth = ""
 time_since_skip = 0
 verbose = False
@@ -19,8 +28,11 @@ realplaylist = {}
 scope='user-modify-playback-state user-read-currently-playing user-read-playback-state user-read-recently-played playlist-read-private'
 client_credentials = SpotifyClientCredentials(client_id, client_secret)
 sp = spotipy.Spotify(auth_manager=SpotifyOAuth(scope=scope,client_id=client_id,client_secret=client_secret,redirect_uri='http://localhost:8888/callback'))
+astra_http_client = create_client(astra_database_id=ASTRA_DB_ID,
+                                  astra_database_region=ASTRA_DB_REGION,
+                                  astra_application_token=ASTRA_DB_APPLICATION_TOKEN)
 
-def savedata(playlist, path=None):
+def savedata(playlist, path=None,db=False):
     if not path:
         path = input("Path to write to? ")
     cont = True
@@ -32,8 +44,17 @@ def savedata(playlist, path=None):
         except FileNotFoundError:
             path = input("File not found. Try again: ")
 
+    jawn = json.dumps(playlist)
 
-def readdata(path):
+    if db:
+        doc_uuid = uuid.uuid4()
+        astra_http_client.request(
+            method=http_methods.PUT,
+            path=f"/api/rest/v2/namespaces/{ASTRA_DB_KEYSPACE}/collections/{ASTRA_DB_COLLECTION}/{doc_uuid}",
+            json_data=jawn)
+
+
+def readdata(path, db=False):
     cont = True
     while cont:
         try:
@@ -42,6 +63,15 @@ def readdata(path):
                 return pickle.load(f)
         except FileNotFoundError:
             path = input("File not found. Try again: ")
+
+    if db:
+        # https://{databaseId}-{region}.apps.astra.datastax.com/api/rest/v2/schemas/keyspaces/{keyspace-id}/tables/{table-id}
+        # doc_uuid = uuid.uuid4()
+        jawn = astra_http_client.request(
+            method=http_methods.GET,
+            path=f"api/rest/v2/schemas/keyspaces/{ASTRA_DB_KEYSPACE}/tables/{ASTRA_DB_COLLECTION}")
+
+        print(json.load(jawn))
 
 
 
@@ -234,13 +264,18 @@ if __name__=="__main__":
         inp = inp.lower()
         if inp == "s":
             path = "/Users/sarathym/Documents/spotifyshuffle-1/src/data/save.txt"
-            savedata(realplaylist)
+            if input("DB? (T/F) ").lower() == "t":
+                savedata(realplaylist, True)
+            else:
+                savedata(realplaylist)
         elif inp == "q":
             cont = False
         elif inp == "p":
             print(realplaylist)
         elif inp == "v":
             verbose = not verbose
+        elif inp == "d":
+            print(trackdata(input(str(datetime.now()) + " Track ID? ")))
         else:
             print("Input not recognized!")
 
